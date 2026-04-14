@@ -1,6 +1,8 @@
 use crate::input::State;
 use anyhow::{Result, ensure};
 
+pub const NUM_OPS: usize = OPERATIONS.len();
+
 pub const OPERATIONS: [Operation; 16] = [
     Operation::Addr,
     Operation::Addi,
@@ -20,6 +22,7 @@ pub const OPERATIONS: [Operation; 16] = [
     Operation::Eqrr,
 ];
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Operation {
     Addr,
     Addi,

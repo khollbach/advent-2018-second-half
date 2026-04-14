@@ -1,7 +1,7 @@
 use std::io::BufRead;
 use std::str::FromStr;
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, Result, anyhow, ensure};
 use itertools::Itertools;
 
 #[derive(Debug, Clone, Copy)]
@@ -36,12 +36,20 @@ pub fn parse<R: BufRead>(mut r: R) -> Result<(Vec<Example>, Vec<Instruction>)> {
 
     let mut parsed_examples = vec![];
     for example in examples {
-        parsed_examples.push(parse_example(example)?);
+        let parsed = parse_example(example).with_context(|| format!("{:?}", example))?;
+        parsed_examples.push(parsed);
     }
 
+    // The program is a single "paragraph".
+    ensure!(program.len() == 1);
+    let program = program[0];
+
     let mut instructions = vec![];
-    for line in program {
-        instructions.push(parse_nums(line)?.into());
+    for line in program.lines() {
+        let parsed = parse_nums(line)
+            .with_context(|| format!("{:?}", line))?
+            .into();
+        instructions.push(parsed);
     }
 
     Ok((parsed_examples, instructions))
