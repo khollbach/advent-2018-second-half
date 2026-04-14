@@ -1,19 +1,13 @@
-/*
-todos:
-- input parsing
-
-*/
-
-use crate::input::{Input, Instruction};
+use crate::input::{Example, Instruction};
 use anyhow::Result;
 
 pub mod input;
 mod operation;
 
-pub fn part_1(input: &Input) -> Result<usize> {
+pub fn part_1(examples: &[Example]) -> Result<usize> {
     let mut num_interesting_examples = 0;
 
-    for example in input {
+    for example in examples {
         let Instruction { opcode: _, a, b, c } = example.instruction;
 
         let mut num_matching_operations = 0;
@@ -28,4 +22,13 @@ pub fn part_1(input: &Input) -> Result<usize> {
     }
 
     Ok(num_interesting_examples)
+}
+
+/*
+todo: pcode
+
+*/
+
+pub fn part_2(_examples: &[Example], _program: &[Instruction]) -> Result<usize> {
+    todo!()
 }

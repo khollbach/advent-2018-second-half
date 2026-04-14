@@ -4,8 +4,6 @@ use std::str::FromStr;
 use anyhow::{Context, Result, anyhow};
 use itertools::Itertools;
 
-pub type Input = Vec<Example>;
-
 #[derive(Debug, Clone, Copy)]
 pub struct Example {
     pub before: State,
@@ -26,21 +24,27 @@ pub struct Instruction {
     pub c: u32,
 }
 
-pub fn parse<R: BufRead>(mut r: R) -> Result<Input> {
+pub fn parse<R: BufRead>(mut r: R) -> Result<(Vec<Example>, Vec<Instruction>)> {
     let mut everything = String::new();
     r.read_to_string(&mut everything)?;
 
     let paragraphs = everything.split("\n\n").collect_vec();
-    let (examples, _) = paragraphs
+    let (examples, program) = paragraphs
         .split(|p| p.is_empty())
         .collect_tuple()
         .context("expected exactly one empty paragraph")?;
 
-    let mut out = vec![];
+    let mut parsed_examples = vec![];
     for example in examples {
-        out.push(parse_example(example)?);
+        parsed_examples.push(parse_example(example)?);
     }
-    Ok(out)
+
+    let mut instructions = vec![];
+    for line in program {
+        instructions.push(parse_nums(line)?.into());
+    }
+
+    Ok((parsed_examples, instructions))
 }
 
 fn parse_example(lines: &str) -> Result<Example> {

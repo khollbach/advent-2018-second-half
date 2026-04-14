@@ -5,8 +5,8 @@ use day_16::input;
 use anyhow::Result;
 
 fn main() -> Result<()> {
-    let input = input::parse(io::stdin().lock())?;
-    let ans = day_16::part_1(&input)?;
-    println!("{}", ans);
+    let (examples, program) = input::parse(io::stdin().lock())?;
+    println!("{}", day_16::part_1(&examples)?);
+    println!("{}", day_16::part_2(&examples, &program)?);
     Ok(())
 }
