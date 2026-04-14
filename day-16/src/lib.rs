@@ -30,11 +30,6 @@ pub fn part_1(examples: &[Example]) -> Result<usize> {
     Ok(num_interesting_examples)
 }
 
-/*
-todo: pcode
-
-*/
-
 pub fn part_2(examples: &[Example], program: &[Instruction]) -> Result<u32> {
     let possible_operations = possible_operations(examples)?;
     let mapping = solve_constraints(possible_operations)?;
