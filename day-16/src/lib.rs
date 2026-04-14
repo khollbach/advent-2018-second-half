@@ -16,13 +16,13 @@ pub fn part_1(input: &Input) -> Result<usize> {
     for example in input {
         let Instruction { opcode: _, a, b, c } = example.instruction;
 
-        let mut num_matching_opcodes = 0;
+        let mut num_matching_operations = 0;
         for op in operation::OPERATIONS {
             if op.apply(example.before, a, b, c)? == example.after {
-                num_matching_opcodes += 1;
+                num_matching_operations += 1;
             }
         }
-        if num_matching_opcodes >= 3 {
+        if num_matching_operations >= 3 {
             num_interesting_examples += 1;
         }
     }

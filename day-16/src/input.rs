@@ -1,6 +1,7 @@
 use std::io::BufRead;
+use std::str::FromStr;
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow};
 use itertools::Itertools;
 
 pub type Input = Vec<Example>;
@@ -25,23 +26,15 @@ pub struct Instruction {
     pub c: u32,
 }
 
-/*
-parsing ideas
-
-- slurp it and split on double-newline
-    - use an empty stirng as the seciton separator
-
-*/
-
 pub fn parse<R: BufRead>(mut r: R) -> Result<Input> {
-    let mut input = String::new();
-    r.read_to_string(&mut input)?;
+    let mut everything = String::new();
+    r.read_to_string(&mut everything)?;
 
-    let paragraphs = input.split("\n\n").collect_vec();
+    let paragraphs = everything.split("\n\n").collect_vec();
     let (examples, _) = paragraphs
         .split(|p| p.is_empty())
         .collect_tuple()
-        .context("expected exactly one blank paragraph")?;
+        .context("expected exactly one empty paragraph")?;
 
     let mut out = vec![];
     for example in examples {
@@ -50,6 +43,58 @@ pub fn parse<R: BufRead>(mut r: R) -> Result<Input> {
     Ok(out)
 }
 
-fn parse_example(_lines: &str) -> Result<Example> {
-    todo!()
+fn parse_example(lines: &str) -> Result<Example> {
+    let (before, instruction, after) = lines
+        .split('\n')
+        .collect_tuple()
+        .context("expected 3 lines")?;
+
+    let list = before
+        .strip_prefix("Before: ")
+        .context("expected `Before: `")?;
+    let before = parse_list(list)?;
+
+    let instruction = parse_nums(instruction)?;
+
+    let list = after
+        .strip_prefix("After:  ") // note the double space
+        .context("expected `After:  `")?;
+    let after = parse_list(list)?;
+
+    Ok(Example {
+        before: before.into(),
+        instruction: instruction.into(),
+        after: after.into(),
+    })
+}
+
+fn parse_list(s: &str) -> Result<[u32; 4]> {
+    let list: Vec<_> = s
+        .strip_prefix('[')
+        .context("expected [")?
+        .strip_suffix(']')
+        .context("expected ]")?
+        .split(", ")
+        .map(u32::from_str)
+        .try_collect()?;
+    list.try_into()
+        .map_err(|_| anyhow!("expected exactly 4 nums"))
+}
+
+fn parse_nums(s: &str) -> Result<[u32; 4]> {
+    let list: Vec<u32> = s.split(' ').map(u32::from_str).try_collect()?;
+    list.try_into()
+        .map_err(|_| anyhow!("expected exactly 4 nums"))
+}
+
+impl From<[u32; 4]> for State {
+    fn from(registers: [u32; 4]) -> Self {
+        Self { registers }
+    }
+}
+
+impl From<[u32; 4]> for Instruction {
+    fn from([opcode, a, b, c]: [u32; 4]) -> Self {
+        Self { opcode, a, b, c }
+    }
 }
