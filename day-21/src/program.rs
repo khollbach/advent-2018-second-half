@@ -5,9 +5,9 @@ use anyhow::{Result, ensure};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Instruction {
     pub op: Operation,
-    pub a: u32,
-    pub b: u32,
-    pub c: u32,
+    pub a: u64,
+    pub b: u64,
+    pub c: u64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -30,7 +30,7 @@ pub enum Operation {
     Eqrr,
 }
 
-pub fn run(ip_register: usize, program: Vec<Instruction>, input: u32) -> Result<u32> {
+pub fn run(ip_register: usize, program: Vec<Instruction>, input: u64) -> Result<u64> {
     Machine::new(ip_register, program, input)?.run()
 }
 
@@ -38,7 +38,7 @@ const NUM_REGS: usize = 6;
 
 struct Machine {
     ip_register: usize,
-    registers: [u32; NUM_REGS],
+    registers: [u64; NUM_REGS],
     instructions: Vec<Instruction>,
 }
 
@@ -49,7 +49,7 @@ enum CpuStatus {
 }
 
 impl Machine {
-    fn new(ip_register: usize, instructions: Vec<Instruction>, input: u32) -> Result<Self> {
+    fn new(ip_register: usize, instructions: Vec<Instruction>, input: u64) -> Result<Self> {
         ensure!(ip_register < NUM_REGS);
 
         let mut registers = [0; _];
@@ -62,7 +62,7 @@ impl Machine {
         })
     }
 
-    fn run(mut self) -> Result<u32> {
+    fn run(mut self) -> Result<u64> {
         loop {
             // eprintln!("{:?}", self);
             match self.step()? {
@@ -117,90 +117,90 @@ impl Machine {
 }
 
 impl Machine {
-    fn reg(&mut self, idx: u32) -> Result<&mut u32> {
+    fn reg(&mut self, idx: u64) -> Result<&mut u64> {
         ensure!(idx < NUM_REGS.try_into().unwrap());
         Ok(&mut self.registers[usize::try_from(idx).unwrap()])
     }
 }
 
 impl Machine {
-    fn addr(&mut self, a: u32, b: u32, c: u32) -> Result<()> {
+    fn addr(&mut self, a: u64, b: u64, c: u64) -> Result<()> {
         *self.reg(c)? = *self.reg(a)? + *self.reg(b)?;
         Ok(())
     }
 
-    fn addi(&mut self, a: u32, b: u32, c: u32) -> Result<()> {
+    fn addi(&mut self, a: u64, b: u64, c: u64) -> Result<()> {
         *self.reg(c)? = *self.reg(a)? + b;
         Ok(())
     }
 
-    fn mulr(&mut self, a: u32, b: u32, c: u32) -> Result<()> {
+    fn mulr(&mut self, a: u64, b: u64, c: u64) -> Result<()> {
         *self.reg(c)? = *self.reg(a)? * *self.reg(b)?;
         Ok(())
     }
 
-    fn muli(&mut self, a: u32, b: u32, c: u32) -> Result<()> {
+    fn muli(&mut self, a: u64, b: u64, c: u64) -> Result<()> {
         *self.reg(c)? = *self.reg(a)? * b;
         Ok(())
     }
 
-    fn banr(&mut self, a: u32, b: u32, c: u32) -> Result<()> {
+    fn banr(&mut self, a: u64, b: u64, c: u64) -> Result<()> {
         *self.reg(c)? = *self.reg(a)? & *self.reg(b)?;
         Ok(())
     }
 
-    fn bani(&mut self, a: u32, b: u32, c: u32) -> Result<()> {
+    fn bani(&mut self, a: u64, b: u64, c: u64) -> Result<()> {
         *self.reg(c)? = *self.reg(a)? & b;
         Ok(())
     }
 
-    fn borr(&mut self, a: u32, b: u32, c: u32) -> Result<()> {
+    fn borr(&mut self, a: u64, b: u64, c: u64) -> Result<()> {
         *self.reg(c)? = *self.reg(a)? | *self.reg(b)?;
         Ok(())
     }
 
-    fn bori(&mut self, a: u32, b: u32, c: u32) -> Result<()> {
+    fn bori(&mut self, a: u64, b: u64, c: u64) -> Result<()> {
         *self.reg(c)? = *self.reg(a)? | b;
         Ok(())
     }
 
-    fn setr(&mut self, a: u32, _b: u32, c: u32) -> Result<()> {
+    fn setr(&mut self, a: u64, _b: u64, c: u64) -> Result<()> {
         *self.reg(c)? = *self.reg(a)?;
         Ok(())
     }
 
-    fn seti(&mut self, a: u32, _b: u32, c: u32) -> Result<()> {
+    fn seti(&mut self, a: u64, _b: u64, c: u64) -> Result<()> {
         *self.reg(c)? = a;
         Ok(())
     }
 
-    fn gtir(&mut self, a: u32, b: u32, c: u32) -> Result<()> {
-        *self.reg(c)? = u32::from(a > *self.reg(b)?);
+    fn gtir(&mut self, a: u64, b: u64, c: u64) -> Result<()> {
+        *self.reg(c)? = u64::from(a > *self.reg(b)?);
         Ok(())
     }
 
-    fn gtri(&mut self, a: u32, b: u32, c: u32) -> Result<()> {
-        *self.reg(c)? = u32::from(*self.reg(a)? > b);
+    fn gtri(&mut self, a: u64, b: u64, c: u64) -> Result<()> {
+        *self.reg(c)? = u64::from(*self.reg(a)? > b);
         Ok(())
     }
 
-    fn gtrr(&mut self, a: u32, b: u32, c: u32) -> Result<()> {
-        *self.reg(c)? = u32::from(*self.reg(a)? > *self.reg(b)?);
+    fn gtrr(&mut self, a: u64, b: u64, c: u64) -> Result<()> {
+        *self.reg(c)? = u64::from(*self.reg(a)? > *self.reg(b)?);
         Ok(())
     }
 
-    fn eqir(&mut self, a: u32, b: u32, c: u32) -> Result<()> {
-        *self.reg(c)? = u32::from(a == *self.reg(b)?);
+    fn eqir(&mut self, a: u64, b: u64, c: u64) -> Result<()> {
+        *self.reg(c)? = u64::from(a == *self.reg(b)?);
         Ok(())
     }
 
-    fn eqri(&mut self, a: u32, b: u32, c: u32) -> Result<()> {
-        *self.reg(c)? = u32::from(*self.reg(a)? == b);
+    fn eqri(&mut self, a: u64, b: u64, c: u64) -> Result<()> {
+        *self.reg(c)? = u64::from(*self.reg(a)? == b);
         Ok(())
     }
 
-    fn eqrr(&mut self, a: u32, b: u32, c: u32) -> Result<()> {
-        *self.reg(c)? = u32::from(*self.reg(a)? == *self.reg(b)?);
+    fn eqrr(&mut self, a: u64, b: u64, c: u64) -> Result<()> {
+        *self.reg(c)? = u64::from(*self.reg(a)? == *self.reg(b)?);
         Ok(())
     }
 }
