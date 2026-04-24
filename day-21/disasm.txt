@@ -1,0 +1,31 @@
+r4 = 123
+r4 &= 456
+r4 = (r4 == 72)
+if !r4: goto line 2
+# (and get stuck in an infinite loop)
+r4 = 0
+    r5 = r4 | 0x1_0000
+        r4 = 0xa3_54f2
+        r2 = r5 & 0xff
+        r4 += r2
+        r4 &= 0xff_ffff
+        r4 *= 0x1_016b
+        r4 &= 0xff_ffff
+        r2 = (256 > r5)
+        if not r2: break  # (goto line 29)
+
+
+        r2 = 0
+            r3 = r2 + 1
+            r3 *= 256
+            r3 = (r3 > r5)
+            if r3: break  # (goto line 27)
+
+
+            r2 += 1
+            loop  # (goto line 19)
+        r5 = r2
+        loop  # (goto line 8)
+    r2 = (r4 == r0)
+    if r2: exit  # (skip to line 32)
+    loop  # (goto line 7)

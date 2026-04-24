@@ -1,0 +1,32 @@
+
+
+
+p-code:
+(there's a single piece of state,
+ and all steps are applied to that state)
+
+
+loop:
+
+    set the bit with index 16
+
+    take the highest byte
+
+    apply xform
+
+    if zero; exit
+
+---
+
+ideas:
+
+- re-impl this in python, and brute force
+
+- maybe patch the asm code to make
+    division fast, and then brute force?
+
+    - how?
+        could add an opcode
+-- yeah, i like this idea!
+
+

@@ -1,0 +1,30 @@
+if 123 & 456 != 72:
+    while True:
+        pass
+four = input
+loop:
+    five = four | 0x1_0000
+    loop:
+        four = 0xa3_54f2 + (five & 0xff)
+
+
+        four &= 0xff_ffff
+        four *= 0x1_106b
+        four &= 0xff_ffff
+        if five <= 256:
+            break
+        five /= 256  # rounding down
+        #i = 0 ; while True:
+        #    x = i + 1
+        #    x *= 256
+        #    if x > n:
+        #        break
+        #
+        #
+        #    i += 1
+        #n = i
+
+
+
+    if four == 0:
+        break  # (exit)

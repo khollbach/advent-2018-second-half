@@ -65,6 +65,7 @@ impl Machine {
     fn run(mut self) -> Result<u64> {
         loop {
             // eprintln!("{:?}", self);
+            // std::thread::sleep(std::time::Duration::from_millis(400));
             match self.step()? {
                 CpuStatus::Continue => (),
                 CpuStatus::Halt => return Ok(self.registers[0]),
@@ -87,6 +88,11 @@ impl Machine {
         };
 
         let Instruction { op, a, b, c } = self.instructions[ip];
+
+        if op == Operation::Seti && c == 2 {
+            eprintln!("{:?}", self);
+        }
+
         match op {
             Operation::Addr => self.addr(a, b, c)?,
             Operation::Addi => self.addi(a, b, c)?,
