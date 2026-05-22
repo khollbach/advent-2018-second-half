@@ -40,6 +40,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "day-20"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "itertools",
+]
+
+[[package]]
 name = "day-21"
 version = "0.1.0"
 dependencies = [
