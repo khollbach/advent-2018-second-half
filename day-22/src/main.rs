@@ -1,10 +1,33 @@
+use std::{
+    cmp::Reverse,
+    collections::{BinaryHeap, HashMap},
+};
+
 fn main() {
     let depth = 11991;
     let target = (6, 797);
+    // let depth = 510;
+    // let target = (10, 10);
 
     let grid = create_grid(depth, target);
     print_grid(&grid);
     println!("{}", risk_level(&grid, target));
+
+    let grid = create_grid(depth, (1_000, 1_000));
+    let ans = shortest_path(
+        &grid,
+        Point {
+            x: 0,
+            y: 0,
+            plane: Plane::_20,
+        },
+        Point {
+            x: target.0,
+            y: target.1,
+            plane: Plane::_20,
+        },
+    );
+    println!("{}", ans);
 }
 
 /*
@@ -87,4 +110,139 @@ fn risk_level(grid: &Vec<Vec<u32>>, target: (usize, usize)) -> u32 {
     }
 
     out
+}
+
+/*
+
+part 2
+
+this feels like it has the flavour of NP-completeness reductions -- where you reshape the input
+graph into something you already know what to do with
+
+my idea is to create 3 copies of the input graph:
+- one that has rocks and narrows passable (wet is off-limits) -- the "torch" graph
+- ...          rocks and wet -- "climbing gear"
+- ...          wet and narrow -- "neither"
+
+and then you connect correpsonding coordinates ("vertically") as follows:
+- torch-rocks <> climbing-rocks
+- torch-narrows <> neither-narrows
+- climbing-wet <> neither-wet
+with edges of weight 7
+
+To make the code easier to write, let's label rock,wet,narrow as 0,1,2
+And let's label climbing,torch,neither as 02,01,12
+Note that you start and end in graph 02 -- at coordinates (0,0) and `target` resp.
+
+We're gonna do a BFS (or maybe more like "cost"-first search), and the neighbors function
+might not be that complicated, so let's start typing and see what happens
+
+*/
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+enum Plane {
+    _01,
+    _12,
+    _20,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+struct Point {
+    x: usize,
+    y: usize,
+    plane: Plane,
+}
+
+fn shortest_path(grid: &Vec<Vec<u32>>, start: Point, end: Point) -> u32 {
+    let mut seen = HashMap::new();
+    let mut to_visit = BinaryHeap::new(); // min-heap
+
+    seen.insert(start, 0);
+    to_visit.push((Reverse(0), start));
+
+    while let Some((Reverse(dist), curr)) = to_visit.pop() {
+        if dist > seen[&curr] {
+            continue;
+        }
+
+        if curr == end {
+            return dist;
+        }
+
+        for (next, cost) in neighbors(grid, curr) {
+            let next_dist = dist + cost;
+            if next_dist < *seen.get(&next).unwrap_or(&u32::MAX) {
+                seen.insert(next, next_dist);
+                to_visit.push((Reverse(next_dist), next));
+            }
+        }
+    }
+
+    panic!("no path found");
+}
+
+fn neighbors(grid: &Vec<Vec<u32>>, curr: Point) -> Vec<(Point, u32)> {
+    let mut out = vec![];
+
+    let plane = curr.plane.other(grid[curr.y][curr.x] % 3);
+    out.push((Point { plane, ..curr }, 7));
+
+    for (dx, dy) in [(0, -1), (0, 1), (-1, 0), (1, 0)] {
+        let x = isize::try_from(curr.x).unwrap() + dx;
+        let y = isize::try_from(curr.y).unwrap() + dy;
+        if in_bounds(grid, (x, y)) {
+            let x = usize::try_from(x).unwrap();
+            let y = usize::try_from(y).unwrap();
+            if curr.plane.passable(grid[y][x] % 3) {
+                out.push((Point { x, y, ..curr }, 1));
+            }
+        }
+    }
+
+    out
+}
+
+fn in_bounds(grid: &Vec<Vec<u32>>, (x, y): (isize, isize)) -> bool {
+    let y = 0 <= y && y < isize::try_from(grid.len()).unwrap();
+    let x = 0 <= x && x < isize::try_from(grid[0].len()).unwrap();
+    x && y
+}
+
+impl Plane {
+    fn passable(self, tile: u32) -> bool {
+        assert!(tile < 3);
+        match (self, tile) {
+            (Plane::_01, 0 | 1) => true,
+            (Plane::_12, 1 | 2) => true,
+            (Plane::_20, 2 | 0) => true,
+            _ => false,
+        }
+    }
+
+    fn other(self, tile: u32) -> Self {
+        assert!(tile < 3);
+        match self {
+            Plane::_01 => {
+                if tile == 0 {
+                    Plane::_20
+                } else {
+                    Plane::_12
+                }
+            }
+            Plane::_12 => {
+                if tile == 1 {
+                    Plane::_01
+                } else {
+                    Plane::_20
+                }
+            }
+            Plane::_20 => {
+                if tile == 2 {
+                    Plane::_12
+                } else {
+                    Plane::_01
+                }
+            }
+        }
+    }
 }
