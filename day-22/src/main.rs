@@ -9,13 +9,10 @@ fn main() {
     // let depth = 510;
     // let target = (10, 10);
 
-    let grid = create_grid(depth, target);
-    print_grid(&grid);
-    println!("{}", risk_level(&grid, target));
+    let grid = Grid::new(depth, target);
+    println!("{}", grid.risk_level(target));
 
-    let grid = create_grid(depth, (1_000, 1_000));
-    let ans = shortest_path(
-        &grid,
+    let ans = grid.shortest_path(
         Point {
             x: 0,
             y: 0,
@@ -46,70 +43,76 @@ fn main() {
 
 */
 
-fn create_grid(depth: u32, target: (usize, usize)) -> Vec<Vec<u32>> {
-    let mod_ = 20_183;
-
-    let (x, y) = target;
-    let num_rows = y + 1;
-    let num_cols = y + 1;
-
-    // Storing erosion level (mod mod_).
-    let mut grid = vec![vec![0; num_cols]; num_rows];
-
-    grid[0][0] = depth;
-    for x in 0..num_cols {
-        grid[0][x] = u32::try_from(x).unwrap() * 16_807;
-        grid[0][x] += depth;
-        grid[0][x] %= mod_;
-    }
-    for y in 0..num_rows {
-        grid[y][0] = u32::try_from(y).unwrap() * 48_271;
-        grid[y][0] += depth;
-        grid[y][0] %= mod_;
-    }
-
-    for y in 1..num_rows {
-        for x in 1..num_cols {
-            grid[y][x] = grid[y - 1][x] * grid[y][x - 1] % mod_;
-            grid[y][x] += depth;
-            grid[y][x] %= mod_;
-        }
-    }
-
-    // Special case: target.
-    grid[y][x] = 0;
-    grid[y][x] += depth;
-    grid[y][x] %= mod_;
-
-    grid
+struct Grid {
+    grid: Vec<Vec<u32>>,
 }
 
-fn print_grid(grid: &Vec<Vec<u32>>) {
-    for row in grid {
-        for x in row {
-            let c = match x % 3 {
-                0 => '.',
-                1 => '=',
-                2 => '|',
-                _ => unreachable!(),
-            };
-            print!("{}", c);
+impl Grid {
+    fn new(depth: u32, target: (usize, usize)) -> Self {
+        let mod_ = 20_183;
+
+        let (x, y) = target;
+        let num_rows = y + 1;
+        let num_cols = y + 1;
+
+        // Storing erosion level (mod mod_).
+        let mut grid = vec![vec![0; 1_000]; 1_000]; // todo: something more robust
+
+        grid[0][0] = depth;
+        for x in 0..num_cols {
+            grid[0][x] = u32::try_from(x).unwrap() * 16_807;
+            grid[0][x] += depth;
+            grid[0][x] %= mod_;
         }
-        println!();
+        for y in 0..num_rows {
+            grid[y][0] = u32::try_from(y).unwrap() * 48_271;
+            grid[y][0] += depth;
+            grid[y][0] %= mod_;
+        }
+
+        for y in 1..num_rows {
+            for x in 1..num_cols {
+                grid[y][x] = grid[y - 1][x] * grid[y][x - 1];
+                grid[y][x] += depth;
+                grid[y][x] %= mod_;
+            }
+        }
+
+        // Special case: target.
+        grid[y][x] = 0;
+        grid[y][x] += depth;
+        grid[y][x] %= mod_;
+
+        Self { grid }
     }
-}
 
-fn risk_level(grid: &Vec<Vec<u32>>, target: (usize, usize)) -> u32 {
-    let mut out = 0;
-
-    let (x, y) = target;
-    for y in 0..=y {
-        for x in 0..=x {
-            out += grid[y][x] % 3;
+    fn _print(&self) {
+        for row in &self.grid {
+            for x in row {
+                let c = match x % 3 {
+                    0 => '.',
+                    1 => '=',
+                    2 => '|',
+                    _ => unreachable!(),
+                };
+                print!("{}", c);
+            }
+            println!();
         }
     }
 
-    out
+    fn risk_level(&self, target: (usize, usize)) -> u32 {
+        let mut out = 0;
+
+        let (x, y) = target;
+        for y in 0..=y {
+            for x in 0..=x {
+                out += self.grid[y][x] % 3;
+            }
+        }
+
+        out
+    }
 }
 
 /*
@@ -153,59 +156,61 @@ struct Point {
     plane: Plane,
 }
 
-fn shortest_path(grid: &Vec<Vec<u32>>, start: Point, end: Point) -> u32 {
-    let mut seen = HashMap::new();
-    let mut to_visit = BinaryHeap::new(); // min-heap
+impl Grid {
+    fn shortest_path(&self, start: Point, end: Point) -> u32 {
+        let mut seen = HashMap::new();
+        let mut to_visit = BinaryHeap::new(); // min-heap
 
-    seen.insert(start, 0);
-    to_visit.push((Reverse(0), start));
+        seen.insert(start, 0);
+        to_visit.push((Reverse(0), start));
 
-    while let Some((Reverse(dist), curr)) = to_visit.pop() {
-        if dist > seen[&curr] {
-            continue;
-        }
+        while let Some((Reverse(dist), curr)) = to_visit.pop() {
+            if dist > seen[&curr] {
+                continue;
+            }
 
-        if curr == end {
-            return dist;
-        }
+            if curr == end {
+                return dist;
+            }
 
-        for (next, cost) in neighbors(grid, curr) {
-            let next_dist = dist + cost;
-            if next_dist < *seen.get(&next).unwrap_or(&u32::MAX) {
-                seen.insert(next, next_dist);
-                to_visit.push((Reverse(next_dist), next));
+            for (next, cost) in self.neighbors(curr) {
+                let next_dist = dist + cost;
+                if next_dist < *seen.get(&next).unwrap_or(&u32::MAX) {
+                    seen.insert(next, next_dist);
+                    to_visit.push((Reverse(next_dist), next));
+                }
             }
         }
+
+        panic!("no path found");
     }
 
-    panic!("no path found");
-}
+    fn neighbors(&self, curr: Point) -> Vec<(Point, u32)> {
+        let mut out = vec![];
 
-fn neighbors(grid: &Vec<Vec<u32>>, curr: Point) -> Vec<(Point, u32)> {
-    let mut out = vec![];
+        let plane = curr.plane.other(self.grid[curr.y][curr.x] % 3);
+        out.push((Point { plane, ..curr }, 7));
 
-    let plane = curr.plane.other(grid[curr.y][curr.x] % 3);
-    out.push((Point { plane, ..curr }, 7));
-
-    for (dx, dy) in [(0, -1), (0, 1), (-1, 0), (1, 0)] {
-        let x = isize::try_from(curr.x).unwrap() + dx;
-        let y = isize::try_from(curr.y).unwrap() + dy;
-        if in_bounds(grid, (x, y)) {
-            let x = usize::try_from(x).unwrap();
-            let y = usize::try_from(y).unwrap();
-            if curr.plane.passable(grid[y][x] % 3) {
-                out.push((Point { x, y, ..curr }, 1));
+        for (dx, dy) in [(0, -1), (0, 1), (-1, 0), (1, 0)] {
+            let x = isize::try_from(curr.x).unwrap() + dx;
+            let y = isize::try_from(curr.y).unwrap() + dy;
+            if self.in_bounds((x, y)) {
+                let x = usize::try_from(x).unwrap();
+                let y = usize::try_from(y).unwrap();
+                if curr.plane.passable(self.grid[y][x] % 3) {
+                    out.push((Point { x, y, ..curr }, 1));
+                }
             }
         }
+
+        out
     }
 
-    out
-}
-
-fn in_bounds(grid: &Vec<Vec<u32>>, (x, y): (isize, isize)) -> bool {
-    let y = 0 <= y && y < isize::try_from(grid.len()).unwrap();
-    let x = 0 <= x && x < isize::try_from(grid[0].len()).unwrap();
-    x && y
+    fn in_bounds(&self, (x, y): (isize, isize)) -> bool {
+        let y = 0 <= y && y < isize::try_from(self.grid.len()).unwrap();
+        let x = 0 <= x && x < isize::try_from(self.grid[0].len()).unwrap();
+        x && y
+    }
 }
 
 impl Plane {
