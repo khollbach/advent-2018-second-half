@@ -83,13 +83,20 @@ impl Grid {
         grid[y][x] += depth;
         grid[y][x] %= mod_;
 
+        // Convert to terrain.
+        for y in 0..num_rows {
+            for x in 0..num_cols {
+                grid[y][x] %= 3;
+            }
+        }
+
         Self { grid }
     }
 
     fn _print(&self) {
         for row in &self.grid {
             for x in row {
-                let c = match x % 3 {
+                let c = match x {
                     0 => '.',
                     1 => '=',
                     2 => '|',
@@ -107,7 +114,7 @@ impl Grid {
         let (x, y) = target;
         for y in 0..=y {
             for x in 0..=x {
-                out += self.grid[y][x] % 3;
+                out += self.grid[y][x];
             }
         }
 
@@ -188,7 +195,7 @@ impl Grid {
     fn neighbors(&self, curr: Point) -> Vec<(Point, u32)> {
         let mut out = vec![];
 
-        let plane = curr.plane.other(self.grid[curr.y][curr.x] % 3);
+        let plane = curr.plane.other(self.grid[curr.y][curr.x]);
         out.push((Point { plane, ..curr }, 7));
 
         for (dx, dy) in [(0, -1), (0, 1), (-1, 0), (1, 0)] {
@@ -197,7 +204,7 @@ impl Grid {
             if self.in_bounds((x, y)) {
                 let x = usize::try_from(x).unwrap();
                 let y = usize::try_from(y).unwrap();
-                if curr.plane.passable(self.grid[y][x] % 3) {
+                if curr.plane.passable(self.grid[y][x]) {
                     out.push((Point { x, y, ..curr }, 1));
                 }
             }
