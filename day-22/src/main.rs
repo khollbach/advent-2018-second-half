@@ -10,6 +10,7 @@ fn main() {
     let target = (10, 10);
 
     let grid = Grid::new(depth, target);
+    grid.print(target);
     println!("{}", grid.risk_level(target));
 
     let ans = grid.shortest_path(
@@ -93,10 +94,10 @@ impl Grid {
         Self { grid }
     }
 
-    fn _print(&self) {
-        for row in &self.grid {
-            for x in row {
-                let c = match x {
+    fn print(&self, (x, y): (usize, usize)) {
+        for y in 0..=y {
+            for x in 0..=x {
+                let c = match self.grid[y][x] {
                     0 => '.',
                     1 => '=',
                     2 => '|',
