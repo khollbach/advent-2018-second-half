@@ -4,10 +4,10 @@ use std::{
 };
 
 fn main() {
-    let depth = 11991;
-    let target = (6, 797);
-    // let depth = 510;
-    // let target = (10, 10);
+    // let depth = 11991;
+    // let target = (6, 797);
+    let depth = 510;
+    let target = (10, 10);
 
     let grid = Grid::new(depth, target);
     println!("{}", grid.risk_level(target));
