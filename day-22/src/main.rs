@@ -4,10 +4,10 @@ use std::{
 };
 
 fn main() {
-    // let depth = 11991;
-    // let target = (6, 797);
-    let depth = 510;
-    let target = (10, 10);
+    let depth = 11991;
+    let target = (6, 797);
+    // let depth = 510;
+    // let target = (10, 10);
 
     let grid = Grid::new(depth, target);
     grid.print(target);
@@ -52,12 +52,12 @@ impl Grid {
     fn new(depth: u32, target: (usize, usize)) -> Self {
         let mod_ = 20_183;
 
-        let (x, y) = target;
-        let num_rows = y + 1;
-        let num_cols = y + 1;
+        // todo: something more robust
+        let num_rows = 1_000;
+        let num_cols = 1_000;
 
         // Storing erosion level (mod mod_).
-        let mut grid = vec![vec![0; 1_000]; 1_000]; // todo: something more robust
+        let mut grid = vec![vec![0; num_cols]; num_rows];
 
         grid[0][0] = depth;
         for x in 0..num_cols {
@@ -80,6 +80,7 @@ impl Grid {
         }
 
         // Special case: target.
+        let (x, y) = target;
         grid[y][x] = 0;
         grid[y][x] += depth;
         grid[y][x] %= mod_;
