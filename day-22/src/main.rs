@@ -4,10 +4,9 @@ use std::{
 };
 
 fn main() {
-    let depth = 11991;
-    let target = (6, 797);
-    // let depth = 510;
-    // let target = (10, 10);
+    // Sample input.
+    let depth = 510;
+    let target = (10, 10);
 
     let grid = Grid::new(depth, target);
     grid.print(target);
@@ -27,22 +26,6 @@ fn main() {
     );
     println!("{}", ans);
 }
-
-/*
-
-- create a grid to store erosion levels
-- x,y according to target (+1 to be inclusive)
-- populate axes according to rules
-    - y=0 => x*16807
-    - x=0 => y*48271
-- populate each cell according to combinatino rule:
-    - mul prev cells, mod 20183
-- overwrite target with special "0" value
-
-- print the grid's ".=|" symbols
-- return overall sum
-
-*/
 
 struct Grid {
     grid: Vec<Vec<u32>>,
@@ -133,8 +116,8 @@ graph into something you already know what to do with
 
 my idea is to create 3 copies of the input graph:
 - one that has rocks and narrows passable (wet is off-limits) -- the "torch" graph
-- ...          rocks and wet -- "climbing gear"
-- ...          wet and narrow -- "neither"
+- ...          rocks and wet                                  -- "climbing gear"
+- ...          wet   and narrows                              -- "neither"
 
 and then you connect correpsonding coordinates ("vertically") as follows:
 - torch-rocks <> climbing-rocks
