@@ -72,9 +72,17 @@ There's a good chance some sort of not-by-chance structure will jump out of this
 
 use std::cmp::Reverse;
 
+use itertools::Itertools;
+
 use crate::{Nanobot, Point};
 
 pub fn solve(nanobots: &[Nanobot]) -> i32 {
+    // _greedy_search(nanobots)
+    brute_force_nearby(nanobots)
+    // testing(nanobots)
+}
+
+fn _heuristic(nanobots: &[Nanobot]) -> i32 {
     let corners: Vec<_> = nanobots.iter().flat_map(|n| n.corners()).collect();
 
     let best = corners
@@ -99,4 +107,141 @@ pub fn solve(nanobots: &[Nanobot]) -> i32 {
 
 fn hit_count(nanobots: &[Nanobot], p: Point) -> usize {
     nanobots.iter().filter(|n| n.in_range(p)).count()
+}
+
+/// "gradient descent" (??)
+fn _greedy_search(nanobots: &[Nanobot]) -> i32 {
+    // let mut curr = Point::ORIGIN; // TODO: ?
+
+    // The best corner.
+    let mut curr = Point {
+        x: 62699654,
+        y: 21730841,
+        z: 24154493,
+    };
+
+    dbg!(hit_count(nanobots, curr), curr);
+
+    // hmmm..
+    // Maybe we need a concept of momentum, to prevent it from getting stuck?
+
+    for i in 0.. {
+        let next = curr
+            .search_neighbors()
+            .into_iter()
+            .max_by_key(|&p| hit_count(nanobots, p))
+            .unwrap();
+
+        if hit_count(nanobots, next) <= hit_count(nanobots, curr) {
+            println!("local minimum at {:?} after {} iterations", curr, i + 1);
+            return curr.manhattan_norm();
+        }
+
+        dbg!(hit_count(nanobots, next), next);
+        curr = next;
+    }
+
+    unreachable!()
+}
+
+fn testing(nanobots: &[Nanobot]) -> i32 {
+    let (xs, ys, zs) = nanobots
+        .iter()
+        .map(
+            |Nanobot {
+                 pos: Point { x, y, z },
+                 ..
+             }| (x, y, z),
+        )
+        .multiunzip();
+    print_bounds(&xs);
+    print_bounds(&ys);
+    print_bounds(&zs);
+
+    let all_corners: Vec<_> = nanobots.iter().flat_map(|n| n.corners()).collect();
+    let best = all_corners
+        .iter()
+        .copied()
+        .max_by_key(|&p| (hit_count(nanobots, p), Reverse(p.manhattan_norm())))
+        .unwrap();
+    let best_corners: Vec<_> = nanobots
+        .iter()
+        .flat_map(|n| n.corners())
+        .filter(|&c| hit_count(nanobots, c) == hit_count(nanobots, best))
+        .collect();
+    dbg!(hit_count(nanobots, best), &best_corners, best_corners.len());
+
+    let mut scores = all_corners
+        .into_iter()
+        .map(|p| (hit_count(nanobots, p), Reverse(p.manhattan_norm()), p))
+        .collect_vec();
+    scores.sort_by_key(|&x| Reverse(x.0));
+    dbg!(&scores[..10]);
+    let (xs, ys, zs) = scores[..2]
+        .iter()
+        .map(|(_, _, Point { x, y, z })| (x, y, z))
+        .multiunzip();
+    print_bounds(&xs);
+    print_bounds(&ys);
+    print_bounds(&zs);
+
+    0
+}
+
+fn print_bounds(xs: &Vec<i32>) {
+    let min = xs.iter().min().unwrap();
+    let max = xs.iter().max().unwrap();
+    println!("{}..={} ({})", min, max, max - min);
+}
+
+fn brute_force_nearby(nanobots: &[Nanobot]) -> i32 {
+    let mut best_corner = Point {
+        x: 62699654,
+        y: 21730841,
+        z: 24154493,
+    };
+
+    let mut best = best_corner;
+    let mut count = 0;
+    for x in -50..=50 {
+        for y in -50..=50 {
+            for z in -50..=50 {
+                let d = Point { x, y, z };
+                let p = best_corner + d;
+                // if hit_count(nanobots, p) > hit_count(nanobots, best) {
+                if hit_count(nanobots, p) == 901 {
+                    // dbg!(p, hit_count(nanobots, p));
+                    count += 1;
+                    // best = p;
+                }
+            }
+        }
+    }
+    dbg!(count);
+
+    todo!()
+}
+
+/*
+interestingly by just guessing something near our previous best, we got something better!
+    [day-23/src/part_2.rs:119:5] hit_count(nanobots, curr) = 901
+    [day-23/src/part_2.rs:119:5] curr = Point {
+        x: 62699650,
+        y: 21730840,
+        z: 24154490,
+    }
+*/
+
+impl Point {
+    fn search_neighbors(self) -> Vec<Self> {
+        let mut out = vec![];
+        for dirn in Point::AXES {
+            for magnitude_log in 0..24 {
+                let magnitude = 1 << magnitude_log;
+                out.push(dirn * magnitude);
+                out.push(dirn * -magnitude);
+            }
+        }
+        out
+    }
 }

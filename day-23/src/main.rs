@@ -76,8 +76,9 @@ impl Point {
     const X: Self = Self { x: 1, y: 0, z: 0 };
     const Y: Self = Self { x: 0, y: 1, z: 0 };
     const Z: Self = Self { x: 0, y: 0, z: 1 };
-    // const ORIGIN: Self = Self { x: 0, y: 0, z: 0 };
-    // const ONES: Self = Self { x: 1, y: 1, z: 1 };
+    const AXES: [Self; 3] = [Self::X, Self::Y, Self::Z];
+    const ORIGIN: Self = Self { x: 0, y: 0, z: 0 };
+    const ONES: Self = Self { x: 1, y: 1, z: 1 };
 }
 
 impl Add for Point {
