@@ -64,8 +64,6 @@ pub fn solve(nanobots: &[Nanobot]) -> i32 {
         .max_by_key(|&p| (hit_count(nanobots, p), Reverse(p.manhattan_norm())))
         .unwrap();
 
-    dbg!(best);
-    dbg!(hit_count(nanobots, best));
     best.manhattan_norm()
 }
 
