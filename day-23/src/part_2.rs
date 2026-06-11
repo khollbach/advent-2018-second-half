@@ -50,12 +50,24 @@ Let's just try corners-only and see what the online judge says :)
     [day-23/src/part_2.rs:63:5] hit_count(nanobots, best) = 894
     ans: 108584988 (manhattan norm)
 verdict: "not right; too high"
+(note: centers-only best is 856 -- lower)
 
 ---
 
 But 894 being a lower-bound on the max-hitcount is quite high!
 Is there a way to make use of this?
 [ ] TODO: keep thinking
+
+---
+
+Hmmm. This is posed as discrete, but at the same time, some sort of gradient
+descent feels like it could do well at optimizing...
+
+---
+
+I should really just render this, either in 3D, or as 3 2D projects, and LOOK at it.
+There's a good chance some sort of not-by-chance structure will jump out of this...
+
 */
 
 use std::cmp::Reverse;
@@ -70,6 +82,18 @@ pub fn solve(nanobots: &[Nanobot]) -> i32 {
         .max_by_key(|&p| (hit_count(nanobots, p), Reverse(p.manhattan_norm())))
         .unwrap();
 
+    // let centers: Vec<_> = nanobots.iter().map(|n| n.pos).collect();
+    // let mut avg = Point::ORIGIN;
+    // for p in centers {
+    //     avg = avg + p;
+    // }
+    // avg.x /= i32::try_from(nanobots.len()).unwrap();
+    // avg.y /= i32::try_from(nanobots.len()).unwrap();
+    // avg.z /= i32::try_from(nanobots.len()).unwrap();
+    // dbg!(hit_count(nanobots, avg)); // 85
+
+    // dbg!(best);
+    // dbg!(hit_count(nanobots, best));
     best.manhattan_norm()
 }
 
