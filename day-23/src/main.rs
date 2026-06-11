@@ -44,7 +44,10 @@ brute force idea -- O(n^4), but fck it let's try anyways
 - take the overall best candidate
 
 - 5 seconds for N=100
-    - so maybe 50,000 seconds for N=1000 -- which could probably finish overnight
+    - so maybe 50,000 seconds for N=1000 ? -- which could probably finish overnight
+- 24 seconds for N=300
+- 2 mins, 26 seconds for N=500
+    - so maybe only 40 mins for N=1000 ??
 
 ---
 
