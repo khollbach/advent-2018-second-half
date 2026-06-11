@@ -54,15 +54,13 @@ verdict: "not right; too high"
 
 use std::cmp::Reverse;
 
-use rayon::prelude::*;
-
 use crate::{Nanobot, Point};
 
 pub fn solve(nanobots: &[Nanobot]) -> i32 {
     let corners: Vec<_> = nanobots.iter().flat_map(|n| n.corners()).collect();
 
     let best = corners
-        .into_par_iter()
+        .into_iter()
         .max_by_key(|&p| (hit_count(nanobots, p), Reverse(p.manhattan_norm())))
         .unwrap();
 
@@ -72,5 +70,5 @@ pub fn solve(nanobots: &[Nanobot]) -> i32 {
 }
 
 fn hit_count(nanobots: &[Nanobot], p: Point) -> usize {
-    nanobots.par_iter().filter(|n| n.in_range(p)).count()
+    nanobots.iter().filter(|n| n.in_range(p)).count()
 }
