@@ -5,6 +5,7 @@ use itertools::Itertools;
 use rayon::prelude::*;
 
 mod input;
+mod part_2_faster;
 
 fn main() -> Result<()> {
     let nanobots = input::parse(io::stdin().lock())?;
@@ -61,6 +62,12 @@ idea for speeding this up:
         (the hope is that this cuts down the # of border points)
     - (similar for y and z)
     - then feed these reduced x/y/z lists into the existing brute force algo
+
+---
+
+Wait a SECOND. I'm trolling. These are not even cubes.
+But maybe we could apply a transformation (rotation?) to the input space
+so that they become cubes?
 */
 
 fn part_2(nanobots: &[Nanobot]) -> i32 {
