@@ -68,6 +68,8 @@ idea for speeding this up:
 Wait a SECOND. I'm trolling. These are not even cubes.
 But maybe we could apply a transformation (rotation?) to the input space
 so that they become cubes?
+... nope. they've got only 6 pointy bits, not 8...
+- they're kinda like two 4-sided pyramids glued together. I'm sure there's a term for this.
 */
 
 fn part_2(nanobots: &[Nanobot]) -> i32 {
