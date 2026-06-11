@@ -50,6 +50,12 @@ Let's just try corners-only and see what the online judge says :)
     [day-23/src/part_2.rs:63:5] hit_count(nanobots, best) = 894
     ans: 108584988 (manhattan norm)
 verdict: "not right; too high"
+
+---
+
+But 894 being a lower-bound on the max-hitcount is quite high!
+Is there a way to make use of this?
+[ ] TODO: keep thinking
 */
 
 use std::cmp::Reverse;
