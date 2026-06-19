@@ -1,3 +1,5 @@
+use std::collections::BinaryHeap;
+
 use crate::Nanobot;
 
 type InputPoint = crate::Point;
@@ -36,7 +38,7 @@ struct Sphere {
 /// For a given side-length, the x,y,z values are indices into the grid of all such cubes.
 ///
 /// In particular, x,y,z are numbers in the range from 0..2^depth.
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 struct BspCube {
     x: u32,
     y: u32,
@@ -121,7 +123,7 @@ impl Sphere {
     }
 }
 
-pub fn solve(nanobots: &[Nanobot]) -> usize {
+pub fn solve(nanobots: &[Nanobot]) -> i32 {
     let spheres: Vec<_> = nanobots
         .iter()
         .map(|n| Sphere {
@@ -130,17 +132,69 @@ pub fn solve(nanobots: &[Nanobot]) -> usize {
         })
         .collect();
 
-    let mut curr = BspCube::default();
-    while let Some(sub_cubes) = curr.split() {
-        curr = sub_cubes
-            .into_iter()
-            .max_by_key(|&cube| hit_count(cube, &spheres))
-            .unwrap();
+    let mut best_point = (0, None);
+
+    let mut to_visit = BinaryHeap::new(); // max-heap
+    let everything = BspCube::default();
+    to_visit.push((hit_count(everything, &spheres), everything));
+
+    while let Some((hits, cube)) = to_visit.pop() {
+        // TODO: we're getting down too low, too fast -- why?
+        // One way to debug could be:
+        // - grab one of the high-hitcount points from past experiments, and
+        // - trace its path to the root and see how the hit-counts look on its ancestors
+        // - (they should be >= 901 at all steps)
+        // - !!! remember to convert to u32-Point
+        /*
+        [day-23/src/part_2.rs:119:5] hit_count(nanobots, curr) = 901
+        [day-23/src/part_2.rs:119:5] curr = InputPoint {
+            x: 62699650,
+            y: 21730840,
+            z: 24154490,
+        }
+        */
+        dbg!(hits, cube.depth);
+        if hits < 700 {
+            panic!();
+        }
+
+        // Prune cubes that are already worse than our best point.
+        if hits < best_point.0 {
+            continue;
+        }
+
+        // New best?
+        if cube.depth == 32 && hits > best_point.0 {
+            best_point = (hits, Some(cube.bounds().min));
+        }
+
+        if let Some(split) = cube.split() {
+            for sub_cube in split {
+                to_visit.push((hit_count(sub_cube, &spheres), sub_cube));
+            }
+        }
     }
 
-    hit_count(curr, &spheres)
+    InputPoint::from(best_point.1.unwrap()).manhattan_norm()
 }
 
 fn hit_count(cube: BspCube, spheres: &[Sphere]) -> usize {
     spheres.iter().filter(|&&s| cube.intersects(s)).count()
+}
+
+impl From<Point> for InputPoint {
+    fn from(p: Point) -> Self {
+        Self {
+            x: u32_to_i32(p.x),
+            y: u32_to_i32(p.y),
+            z: u32_to_i32(p.z),
+        }
+    }
+}
+
+/// Map `0..2^32` to `-2^31..2^31`, by subtracting `2^31`.
+fn u32_to_i32(x: u32) -> i32 {
+    // !!! TODO: check this...
+
+    (x as i32).wrapping_add(i32::MIN)
 }
