@@ -20,7 +20,7 @@ impl FromStr for Nanobot {
             .strip_prefix("pos=<")
             .context("expected pos=<")?
             .strip_suffix(">")
-            .context(">")?
+            .context("expected >")?
             .split(',')
             .map(str::parse)
             .collect_tuple()

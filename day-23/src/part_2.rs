@@ -35,9 +35,11 @@ struct Sphere {
 
 /// An axis-aligned cube of side-length 2^(32-depth).
 ///
-/// For a given side-length, the x,y,z values are indices into the grid of all such cubes.
+/// For a given side-length, we can partition 3D space into (2^depth)^3 many
+/// cubes of that size.
 ///
-/// In particular, x,y,z are numbers in the range from 0..2^depth.
+/// The x,y,z values are indices into that grid of cubes. In particular, they
+/// are numbers in the range 0..2^depth.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 struct BspCube {
     x: u32,
@@ -62,9 +64,9 @@ impl BspCube {
         let mut z = self.z;
 
         let shift = 32 - self.depth;
-        x <<= shift;
-        y <<= shift;
-        z <<= shift;
+        x = x.unbounded_shl(shift);
+        y = y.unbounded_shl(shift);
+        z = z.unbounded_shl(shift);
         let min = Point { x, y, z };
 
         let mask = 1_u32.unbounded_shl(shift).wrapping_sub(1);
@@ -92,11 +94,11 @@ impl BspCube {
             for y in 0..2 {
                 for z in 0..2 {
                     out[4 * x + 2 * y + z] = self;
-                    self.z |= 1;
+                    self.z ^= 1;
                 }
-                self.y |= 1;
+                self.y ^= 1;
             }
-            self.x |= 1;
+            self.x ^= 1;
         }
         Some(out)
     }
@@ -139,25 +141,6 @@ pub fn solve(nanobots: &[Nanobot]) -> i32 {
     to_visit.push((hit_count(everything, &spheres), everything));
 
     while let Some((hits, cube)) = to_visit.pop() {
-        // TODO: we're getting down too low, too fast -- why?
-        // One way to debug could be:
-        // - grab one of the high-hitcount points from past experiments, and
-        // - trace its path to the root and see how the hit-counts look on its ancestors
-        // - (they should be >= 901 at all steps)
-        // - !!! remember to convert to u32-Point
-        /*
-        [day-23/src/part_2.rs:119:5] hit_count(nanobots, curr) = 901
-        [day-23/src/part_2.rs:119:5] curr = InputPoint {
-            x: 62699650,
-            y: 21730840,
-            z: 24154490,
-        }
-        */
-        dbg!(hits, cube.depth);
-        if hits < 700 {
-            panic!();
-        }
-
         // Prune cubes that are already worse than our best point.
         if hits < best_point.0 {
             continue;
@@ -194,7 +177,5 @@ impl From<Point> for InputPoint {
 
 /// Map `0..2^32` to `-2^31..2^31`, by subtracting `2^31`.
 fn u32_to_i32(x: u32) -> i32 {
-    // !!! TODO: check this...
-
     (x as i32).wrapping_add(i32::MIN)
 }
