@@ -1,247 +1,146 @@
-/*
-part 2 brainstorming
-- n=1,000 -- O(n^3) feasible
-- size of #s =~ 10,000,000
+use crate::Nanobot;
 
-brute force idea -- O(n^4), but fck it let's try anyways
-- project all cubes onto each axis; getting a list of all
-    - x border points
-    - y border points
-    - z border points
-- for each x,y,z from those sets, try that candidate point
-    (can maybe use rayon for multi-core)
-- take the overall best candidate
+type InputPoint = crate::Point;
 
-- 5 seconds for N=100
-    - so maybe 50,000 seconds for N=1000 ? -- which could probably finish overnight
-- 24 seconds for N=300
-- 2 mins, 26 seconds for N=500
-    - so maybe only 40 mins for N=1000 ??
+/// Make everything positive, so it's easier to work with.
+#[derive(Debug, Clone, Copy)]
+struct Point {
+    x: u32,
+    y: u32,
+    z: u32,
+}
 
----
-
-idea for speeding this up:
-- first try all cube corners, and then use the max hit-count of those
-    as a lower bound on the actual answer -- call it L
-- this should let us avoid checking all border points as follows:
-    - take the projection of the cubes onto the x axis
-    - find the intervals that have hit-count at least L
-        (linear time is possible, but not needed -- can do an n^2 thing here)
-        (the hope is that this cuts down the # of border points)
-    - (similar for y and z)
-    - then feed these reduced x/y/z lists into the existing brute force algo
-
----
-
-Wait a SECOND. I'm trolling. These are not even cubes.
-But maybe we could apply a transformation (rotation?) to the input space
-so that they become cubes?
-... nope. they've got only 6 pointy bits, not 8...
-- they're kinda like two 4-sided pyramids glued together. I'm sure there's a term for this.
-
----
-
-Let's just try corners-only and see what the online judge says :)
-    [day-23/src/part_2.rs:62:5] best = Point {
-        x: 62699654,
-        y: 21730841,
-        z: 24154493,
+impl From<InputPoint> for Point {
+    fn from(p: InputPoint) -> Self {
+        Self {
+            x: i32_to_u32(p.x),
+            y: i32_to_u32(p.y),
+            z: i32_to_u32(p.z),
+        }
     }
-    [day-23/src/part_2.rs:63:5] hit_count(nanobots, best) = 894
-    ans: 108584988 (manhattan norm)
-verdict: "not right; too high"
-(note: centers-only best is 856 -- lower)
-
----
-
-But 894 being a lower-bound on the max-hitcount is quite high!
-Is there a way to make use of this?
-[ ] TODO: keep thinking
-
----
-
-Hmmm. This is posed as discrete, but at the same time, some sort of gradient
-descent feels like it could do well at optimizing...
-
----
-
-I should really just render this, either in 3D, or as 3 2D projects, and LOOK at it.
-There's a good chance some sort of not-by-chance structure will jump out of this...
-
-*/
-
-use std::cmp::Reverse;
-
-use itertools::Itertools;
-
-use crate::{Nanobot, Point};
-
-pub fn solve(nanobots: &[Nanobot]) -> i32 {
-    // _greedy_search(nanobots)
-    brute_force_nearby(nanobots)
-    // testing(nanobots)
 }
 
-fn _heuristic(nanobots: &[Nanobot]) -> i32 {
-    let corners: Vec<_> = nanobots.iter().flat_map(|n| n.corners()).collect();
-
-    let best = corners
-        .into_iter()
-        .max_by_key(|&p| (hit_count(nanobots, p), Reverse(p.manhattan_norm())))
-        .unwrap();
-
-    // let centers: Vec<_> = nanobots.iter().map(|n| n.pos).collect();
-    // let mut avg = Point::ORIGIN;
-    // for p in centers {
-    //     avg = avg + p;
-    // }
-    // avg.x /= i32::try_from(nanobots.len()).unwrap();
-    // avg.y /= i32::try_from(nanobots.len()).unwrap();
-    // avg.z /= i32::try_from(nanobots.len()).unwrap();
-    // dbg!(hit_count(nanobots, avg)); // 85
-
-    // dbg!(best);
-    // dbg!(hit_count(nanobots, best));
-    best.manhattan_norm()
+/// Map `-2^31..2^31` to `0..2^32`, by adding `2^31`.
+fn i32_to_u32(x: i32) -> u32 {
+    x.wrapping_sub(i32::MIN) as u32
 }
 
-fn hit_count(nanobots: &[Nanobot], p: Point) -> usize {
-    nanobots.iter().filter(|n| n.in_range(p)).count()
+#[derive(Debug, Clone, Copy)]
+struct Sphere {
+    center: Point,
+    radius: u32,
 }
 
-/// "gradient descent" (??)
-fn _greedy_search(nanobots: &[Nanobot]) -> i32 {
-    // let mut curr = Point::ORIGIN; // TODO: ?
+/// An axis-aligned cube of side-length 2^(32-depth).
+///
+/// For a given side-length, the x,y,z values are indices into the grid of all such cubes.
+///
+/// In particular, x,y,z are numbers in the range from 0..2^depth.
+#[derive(Debug, Clone, Copy, Default)]
+struct BspCube {
+    x: u32,
+    y: u32,
+    z: u32,
+    /// 0..=32
+    depth: u32,
+}
 
-    // The best corner.
-    let mut curr = Point {
-        x: 62699654,
-        y: 21730841,
-        z: 24154493,
-    };
+#[derive(Debug, Clone, Copy)]
+struct Bounds {
+    /// Inclusive.
+    min: Point,
+    /// Inclusive.
+    max: Point,
+}
 
-    dbg!(hit_count(nanobots, curr), curr);
+impl BspCube {
+    fn bounds(self) -> Bounds {
+        let mut x = self.x;
+        let mut y = self.y;
+        let mut z = self.z;
 
-    // hmmm..
-    // Maybe we need a concept of momentum, to prevent it from getting stuck?
+        let shift = 32 - self.depth;
+        x <<= shift;
+        y <<= shift;
+        z <<= shift;
+        let min = Point { x, y, z };
 
-    for i in 0.. {
-        let next = curr
-            .search_neighbors()
-            .into_iter()
-            .max_by_key(|&p| hit_count(nanobots, p))
-            .unwrap();
+        let mask = 1_u32.unbounded_shl(shift).wrapping_sub(1);
+        x += mask;
+        y += mask;
+        z += mask;
+        let max = Point { x, y, z };
 
-        if hit_count(nanobots, next) <= hit_count(nanobots, curr) {
-            println!("local minimum at {:?} after {} iterations", curr, i + 1);
-            return curr.manhattan_norm();
+        Bounds { min, max }
+    }
+
+    /// Sub-divide into 8 cubes of half the side-length.
+    fn split(mut self) -> Option<[Self; 8]> {
+        if self.depth == 32 {
+            return None;
         }
 
-        dbg!(hit_count(nanobots, next), next);
-        curr = next;
-    }
+        self.depth += 1;
+        self.x <<= 1;
+        self.y <<= 1;
+        self.z <<= 1;
 
-    unreachable!()
-}
-
-fn testing(nanobots: &[Nanobot]) -> i32 {
-    let (xs, ys, zs) = nanobots
-        .iter()
-        .map(
-            |Nanobot {
-                 pos: Point { x, y, z },
-                 ..
-             }| (x, y, z),
-        )
-        .multiunzip();
-    print_bounds(&xs);
-    print_bounds(&ys);
-    print_bounds(&zs);
-
-    let all_corners: Vec<_> = nanobots.iter().flat_map(|n| n.corners()).collect();
-    let best = all_corners
-        .iter()
-        .copied()
-        .max_by_key(|&p| (hit_count(nanobots, p), Reverse(p.manhattan_norm())))
-        .unwrap();
-    let best_corners: Vec<_> = nanobots
-        .iter()
-        .flat_map(|n| n.corners())
-        .filter(|&c| hit_count(nanobots, c) == hit_count(nanobots, best))
-        .collect();
-    dbg!(hit_count(nanobots, best), &best_corners, best_corners.len());
-
-    let mut scores = all_corners
-        .into_iter()
-        .map(|p| (hit_count(nanobots, p), Reverse(p.manhattan_norm()), p))
-        .collect_vec();
-    scores.sort_by_key(|&x| Reverse(x.0));
-    dbg!(&scores[..10]);
-    let (xs, ys, zs) = scores[..2]
-        .iter()
-        .map(|(_, _, Point { x, y, z })| (x, y, z))
-        .multiunzip();
-    print_bounds(&xs);
-    print_bounds(&ys);
-    print_bounds(&zs);
-
-    0
-}
-
-fn print_bounds(xs: &Vec<i32>) {
-    let min = xs.iter().min().unwrap();
-    let max = xs.iter().max().unwrap();
-    println!("{}..={} ({})", min, max, max - min);
-}
-
-fn brute_force_nearby(nanobots: &[Nanobot]) -> i32 {
-    let mut best_corner = Point {
-        x: 62699654,
-        y: 21730841,
-        z: 24154493,
-    };
-
-    let mut best = best_corner;
-    let mut count = 0;
-    for x in -50..=50 {
-        for y in -50..=50 {
-            for z in -50..=50 {
-                let d = Point { x, y, z };
-                let p = best_corner + d;
-                // if hit_count(nanobots, p) > hit_count(nanobots, best) {
-                if hit_count(nanobots, p) == 901 {
-                    // dbg!(p, hit_count(nanobots, p));
-                    count += 1;
-                    // best = p;
+        let mut out = [Self::default(); 8];
+        for x in 0..2 {
+            for y in 0..2 {
+                for z in 0..2 {
+                    out[4 * x + 2 * y + z] = self;
+                    self.z |= 1;
                 }
+                self.y |= 1;
             }
+            self.x |= 1;
         }
+        Some(out)
     }
-    dbg!(count);
 
-    todo!()
+    fn intersects(self, s: Sphere) -> bool {
+        let b = self.bounds();
+
+        // Find the closest point to c.
+        let c = s.center;
+        let p = Point {
+            x: c.x.clamp(b.min.x, b.max.x),
+            y: c.y.clamp(b.min.y, b.max.y),
+            z: c.z.clamp(b.min.z, b.max.z),
+        };
+
+        s.intersects(p)
+    }
 }
 
-/*
-interestingly by just guessing something near our previous best, we got something better!
-    [day-23/src/part_2.rs:119:5] hit_count(nanobots, curr) = 901
-    [day-23/src/part_2.rs:119:5] curr = Point {
-        x: 62699650,
-        y: 21730840,
-        z: 24154490,
+impl Sphere {
+    fn intersects(self, p: Point) -> bool {
+        let c = self.center;
+        c.x.abs_diff(p.x) + c.y.abs_diff(p.y) + c.z.abs_diff(p.z) <= self.radius
     }
-*/
+}
 
-impl Point {
-    fn search_neighbors(self) -> Vec<Self> {
-        let mut out = vec![];
-        for dirn in Point::AXES {
-            for magnitude_log in 0..24 {
-                let magnitude = 1 << magnitude_log;
-                out.push(dirn * magnitude);
-                out.push(dirn * -magnitude);
-            }
-        }
-        out
+pub fn solve(nanobots: &[Nanobot]) -> usize {
+    let spheres: Vec<_> = nanobots
+        .iter()
+        .map(|n| Sphere {
+            center: n.pos.into(),
+            radius: n.range.try_into().unwrap(),
+        })
+        .collect();
+
+    let mut curr = BspCube::default();
+    while let Some(sub_cubes) = curr.split() {
+        curr = sub_cubes
+            .into_iter()
+            .max_by_key(|&cube| hit_count(cube, &spheres))
+            .unwrap();
     }
+
+    hit_count(curr, &spheres)
+}
+
+fn hit_count(cube: BspCube, spheres: &[Sphere]) -> usize {
+    spheres.iter().filter(|&&s| cube.intersects(s)).count()
 }

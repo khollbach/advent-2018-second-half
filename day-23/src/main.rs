@@ -1,7 +1,4 @@
-use std::{
-    io,
-    ops::{Add, Mul, Sub},
-};
+use std::{io, ops::Sub};
 
 use anyhow::Result;
 
@@ -10,10 +7,13 @@ mod part_2;
 
 fn main() -> Result<()> {
     let nanobots = input::parse(io::stdin().lock())?;
+
     let ans = part_1(&nanobots);
     println!("{}", ans);
+
     let ans = part_2::solve(&nanobots);
     println!("{}", ans);
+
     Ok(())
 }
 
@@ -42,19 +42,6 @@ impl Nanobot {
     fn in_range(self, p: Point) -> bool {
         self.pos.manhattan_distance(p) <= self.range
     }
-
-    fn corners(self) -> [Point; 6] {
-        let p = self.pos;
-        let r = self.range;
-        [
-            p + Point::X * r,
-            p + Point::X * -r,
-            p + Point::Y * r,
-            p + Point::Y * -r,
-            p + Point::Z * r,
-            p + Point::Z * -r,
-        ]
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -72,25 +59,6 @@ impl Point {
     fn manhattan_norm(self) -> i32 {
         self.x.abs() + self.y.abs() + self.z.abs()
     }
-
-    const X: Self = Self { x: 1, y: 0, z: 0 };
-    const Y: Self = Self { x: 0, y: 1, z: 0 };
-    const Z: Self = Self { x: 0, y: 0, z: 1 };
-    const AXES: [Self; 3] = [Self::X, Self::Y, Self::Z];
-    const ORIGIN: Self = Self { x: 0, y: 0, z: 0 };
-    const ONES: Self = Self { x: 1, y: 1, z: 1 };
-}
-
-impl Add for Point {
-    type Output = Self;
-
-    fn add(self, other: Self) -> Self {
-        Self {
-            x: self.x + other.x,
-            y: self.y + other.y,
-            z: self.z + other.z,
-        }
-    }
 }
 
 impl Sub for Point {
@@ -101,18 +69,6 @@ impl Sub for Point {
             x: self.x - other.x,
             y: self.y - other.y,
             z: self.z - other.z,
-        }
-    }
-}
-
-impl Mul<i32> for Point {
-    type Output = Point;
-
-    fn mul(self, scale: i32) -> Self {
-        Self {
-            x: self.x * scale,
-            y: self.y * scale,
-            z: self.z * scale,
         }
     }
 }
