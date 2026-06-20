@@ -134,31 +134,25 @@ pub fn solve(nanobots: &[Nanobot]) -> i32 {
         })
         .collect();
 
-    let mut best_point = (0, None);
-
     let mut to_visit = BinaryHeap::new(); // max-heap
+
     let everything = BspCube::default();
     to_visit.push((hit_count(everything, &spheres), everything));
 
-    while let Some((hits, cube)) = to_visit.pop() {
-        // Prune cubes that are already worse than our best point.
-        if hits < best_point.0 {
-            continue;
-        }
+    loop {
+        let (_, cube) = to_visit.pop().unwrap();
 
-        // New best?
-        if cube.depth == 32 && hits > best_point.0 {
-            best_point = (hits, Some(cube.bounds().min));
-        }
-
-        if let Some(split) = cube.split() {
-            for sub_cube in split {
-                to_visit.push((hit_count(sub_cube, &spheres), sub_cube));
+        match cube.split() {
+            Some(split) => {
+                for sub_cube in split {
+                    to_visit.push((hit_count(sub_cube, &spheres), sub_cube));
+                }
             }
+            // We visit cubes in order of hit-count, so the first 1x1x1 cube is
+            // the best.
+            None => return InputPoint::from(cube.bounds().min).manhattan_norm(),
         }
     }
-
-    InputPoint::from(best_point.1.unwrap()).manhattan_norm()
 }
 
 fn hit_count(cube: BspCube, spheres: &[Sphere]) -> usize {
